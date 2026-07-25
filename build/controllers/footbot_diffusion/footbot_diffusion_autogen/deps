@@ -1,5 +1,0 @@
-footbot_diffusion_autogen/timestamp: \
-	/home/nermine/Desktop/argos3-examples/controllers/footbot_diffusion/CMakeLists.txt \
-	/home/nermine/Desktop/argos3-examples/controllers/footbot_diffusion/footbot_diffusion.cpp \
-	/home/nermine/Desktop/argos3-examples/controllers/footbot_diffusion/footbot_diffusion.h \
-	/usr/bin/cmake

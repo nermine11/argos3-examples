@@ -1,5 +1,0 @@
-footbot_gripping_autogen/timestamp: \
-	/home/nermine/Desktop/argos3-examples/controllers/footbot_gripping/CMakeLists.txt \
-	/home/nermine/Desktop/argos3-examples/controllers/footbot_gripping/footbot_gripping.cpp \
-	/home/nermine/Desktop/argos3-examples/controllers/footbot_gripping/footbot_gripping.h \
-	/usr/bin/cmake
