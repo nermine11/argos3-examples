@@ -1,0 +1,5 @@
+custom_distributions_loop_functions_autogen/timestamp: \
+	/home/nermine/Desktop/argos3-examples/loop_functions/custom_distributions_loop_functions/CMakeLists.txt \
+	/home/nermine/Desktop/argos3-examples/loop_functions/custom_distributions_loop_functions/custom_distributions_loop_functions.cpp \
+	/home/nermine/Desktop/argos3-examples/loop_functions/custom_distributions_loop_functions/custom_distributions_loop_functions.h \
+	/usr/bin/cmake

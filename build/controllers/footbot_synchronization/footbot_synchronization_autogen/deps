@@ -1,0 +1,5 @@
+footbot_synchronization_autogen/timestamp: \
+	/home/nermine/Desktop/argos3-examples/controllers/footbot_synchronization/CMakeLists.txt \
+	/home/nermine/Desktop/argos3-examples/controllers/footbot_synchronization/footbot_synchronization.cpp \
+	/home/nermine/Desktop/argos3-examples/controllers/footbot_synchronization/footbot_synchronization.h \
+	/usr/bin/cmake

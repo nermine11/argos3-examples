@@ -18,13 +18,17 @@ CFootBotDiffusion::CFootBotDiffusion() :
    m_fWheelVelocity(2.5f),
    m_cGoStraightAngleRange(-ToRadians(m_cAlpha),
                            ToRadians(m_cAlpha)){
-   std::vector<int> sensors(24); // Original 24 elements 
+   std::vector<int> sensors(24); // Original 24 sensors 
    std::iota(sensors.begin(), sensors.end(), 0);
-
-   frontLeft.assign(sensors.begin(),      sensors.begin() + 6);
-   backLeft.assign(sensors.begin() + 6,  sensors.begin() + 12);
-   backRight.assign(sensors.begin() + 12, sensors.begin() + 18);
-   frontRight.assign(sensors.begin() + 18, sensors.end());
+   // Assign the sensors for each section
+   sections.push_back({"frontLeft",   CRadians::ZERO,
+                       0.0, std::vector<int>(sensors.begin(),      sensors.begin() + 6)});
+   sections.push_back({"backLeft",    CRadians::ZERO,
+                       0.0, std::vector<int>(sensors.begin() + 6,  sensors.begin() + 12)});
+   sections.push_back({"backRight",  CRadians::ZERO,
+                       0.0, std::vector<int>(sensors.begin() + 12, sensors.begin() + 18)});
+   sections.push_back({"frontRight", CRadians::ZERO,
+                       0.0, std::vector<int>(sensors.begin() + 18, sensors.end())});
 }
 
 /****************************************/
@@ -66,9 +70,13 @@ void CFootBotDiffusion::Init(TConfigurationNode& t_node) {
    m_cGoStraightAngleRange.Set(-ToRadians(m_cAlpha), ToRadians(m_cAlpha));
    GetNodeAttributeOrDefault(t_node, "delta", m_fDelta, m_fDelta);
    GetNodeAttributeOrDefault(t_node, "velocity", m_fWheelVelocity, m_fWheelVelocity);
+   /* Add the fixed angle of each section */
+   for(section&s : sections){
+      s.angle = SectionAngle(s.sensors);
+   }
 }
 
-CVector2 CFootBotDiffusion::SumReadings(const std::vector<int>& section){
+Real CFootBotDiffusion::SumReadings(const std::vector<int>& section){
    const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
    /* Sum them together */
    CVector2 cAccumulator;
@@ -77,39 +85,40 @@ CVector2 CFootBotDiffusion::SumReadings(const std::vector<int>& section){
       cAccumulator += CVector2(tProxReads[index].Value, tProxReads[index].Angle);
    }
    cAccumulator /= section.size();
-   return cAccumulator;
+   return cAccumulator.Length();
 
+}
+CRadians CFootBotDiffusion::SectionAngle(const std::vector<int>& section) {
+   const CCI_FootBotProximitySensor::TReadings& tReads = m_pcProximity->GetReadings();
+   CVector2 cDir;
+   for(size_t i = 0; i < section.size(); ++i)  {
+      int index = section[i];
+      cDir += CVector2(1.0, tReads[index].Angle);   // length 1
+   }
+   return cDir.Angle();
 }
 
 CRadians CFootBotDiffusion::LowDensitySection() {
-
    /* Get readings from each section */
-   CVector2 cAccumulatorFrontRight = SumReadings(frontRight);
-         LOG << "frontRight = " << cAccumulatorFrontRight << '\n';
-
-   CVector2 cAccumulatorFrontLeft = SumReadings(frontLeft);
-         LOG << "frontLeft = " << cAccumulatorFrontLeft << '\n';
-
-   CVector2 cAccumulatorBackRight = SumReadings(backRight);
-         LOG << "cAccumulatorBackRight = " << cAccumulatorBackRight << '\n';
-
-   CVector2 cAccumulatorBackLeft = SumReadings(backLeft);
-         LOG << "cAccumulatorBackLeft = " << cAccumulatorBackLeft << '\n';
-
+   for(section&s : sections){
+      s.reading = SumReadings(s.sensors);
+      LOG << "section name = " << s.name << '\n';   
+      LOG << "section angle = " << s.angle << '\n';
+      LOG << "section reading = " << s.reading << '\n';
+   }
    /* Find the section with the most space (less dense with obstacles)*/
-   CVector2 cMinSection = std::min({cAccumulatorFrontRight, cAccumulatorFrontLeft, cAccumulatorBackRight, cAccumulatorBackLeft}, [](const CVector2& a, const CVector2& b) {
-      return a.Length() < b.Length();     
-   });
-            LOG << "cMinSection = " << cMinSection << '\n';
-            LOG << "cMinSection angle = " << cMinSection.Angle()<< '\n';
-
-   return cMinSection.Angle();
+   const section* best = &sections[0];
+   for(section&s : sections){
+      if(s.reading < best->reading){
+         best = &s;
+      }
+   }
+   LOG << "best = " << best->name << '\n';
+   return best->angle;
 }
 
-
 /****************************************/
 /****************************************/
-
 void CFootBotDiffusion::ControlStep() {
    /* Get readings from proximity sensor */
    const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
@@ -131,7 +140,6 @@ void CFootBotDiffusion::ControlStep() {
    }
    else {
       CRadians newDirection = LowDensitySection();
-      LOG << "newDirection = " << newDirection << '\n';
       CRadians tolerance = ToRadians(CDegrees(5.0f));
       if(std::abs(newDirection.GetValue()) > tolerance.GetValue()){
          /* Turn, depending on the sign of the angle */
@@ -150,8 +158,5 @@ void CFootBotDiffusion::ControlStep() {
          LOG << " go straight \n ";
          m_pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
       }
-      
-   
-
    }
 }

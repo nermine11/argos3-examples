@@ -72,7 +72,8 @@ public:
     */
    virtual void Reset() {}
    virtual CRadians LowDensitySection();
-   virtual CVector2 SumReadings(const std::vector<int>& section);
+   virtual Real SumReadings(const std::vector<int>& section);
+   virtual CRadians SectionAngle(const std::vector<int>& section);
 
    /*
     * Called to cleanup what done by Init() when the experiment finishes.
@@ -113,14 +114,18 @@ private:
     * It is set to [-alpha,alpha]. */
    CRange<CRadians> m_cGoStraightAngleRange;
    /* See the sensors positions here: https://github.com/ilpincy/argos3/blob/master/src/plugins/robots/foot-bot/control_interface/ci_footbot_proximity_sensor.h*/
-   // Front sensors 0,23
-   std::vector<int> frontRight;
-   // Back sensors 11,12
-   std::vector<int> frontLeft;
-   // Right sensors 13 -> 22
-   std::vector<int> backRight;
-   // Left sensors 1 -> 10
-   std::vector<int> backLeft;
+   // Front left sensors: 0,1,2,3,4,5
+   // Back sensors 6,7,8,9,10,1
+   // Right sensors 12,13,14,15,16,17
+   // Left sensors 18,19,20,21,22,23
+   struct section{
+      std::string name;
+      CRadians angle;
+      Real reading;
+      std::vector<int> sensors;
+   };
+   std::vector<section> sections;
+
 };
 
 #endif

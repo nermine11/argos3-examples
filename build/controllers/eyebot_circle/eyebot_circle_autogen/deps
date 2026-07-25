@@ -1,0 +1,7 @@
+eyebot_circle_autogen/timestamp: \
+	/home/nermine/Desktop/argos3-examples/controllers/eyebot_circle/CMakeLists.txt \
+	/home/nermine/Desktop/argos3-examples/controllers/eyebot_circle/eyebot_circle.cpp \
+	/home/nermine/Desktop/argos3-examples/controllers/eyebot_circle/eyebot_circle.h \
+	/home/nermine/Desktop/argos3-examples/controllers/eyebot_circle/footbot_circle.cpp \
+	/home/nermine/Desktop/argos3-examples/controllers/eyebot_circle/footbot_circle.h \
+	/usr/bin/cmake

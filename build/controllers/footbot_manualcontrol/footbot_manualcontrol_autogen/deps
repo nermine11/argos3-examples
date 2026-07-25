@@ -1,0 +1,5 @@
+footbot_manualcontrol_autogen/timestamp: \
+	/home/nermine/Desktop/argos3-examples/controllers/footbot_manualcontrol/CMakeLists.txt \
+	/home/nermine/Desktop/argos3-examples/controllers/footbot_manualcontrol/footbot_manualcontrol.cpp \
+	/home/nermine/Desktop/argos3-examples/controllers/footbot_manualcontrol/footbot_manualcontrol.h \
+	/usr/bin/cmake
