@@ -123,7 +123,7 @@ CRadians CFootBotDiffusion::LowestDensitySection() {
          best = &s;
       }
    }
-   LOG << "best = " << best->name << '\n';
+   //LOG << "best = " << best->name << '\n';
    return best->angle;
 }
 
@@ -140,7 +140,7 @@ bool CFootBotDiffusion::IsObstacleDetected(){
          fMaxProxRead = tProxReads[i].Value;
       }
    }
-   LOG << "[" << GetId() << "] maxProx = " << fMaxProxRead << '\n';
+   //LOG << "[" << GetId() << "] maxProx = " << fMaxProxRead << '\n';
    return fMaxProxRead > m_fDelta;
 }
 
@@ -171,7 +171,7 @@ void CFootBotDiffusion::GoStraight(){
 /****************************************/
 
 void CFootBotDiffusion::GoRight(){
-   LOG << "[" << GetId() << "]" << " move right \n ";
+   //LOG << "[" << GetId() << "]" << " move right \n ";
    m_pcWheels->SetLinearVelocity(-m_fWheelVelocity, m_fWheelVelocity);
 }
 
@@ -179,7 +179,7 @@ void CFootBotDiffusion::GoRight(){
 /****************************************/
 
 void CFootBotDiffusion::GoLeft(){
-   LOG << "[" << GetId() << "]" << " move left \n ";
+   //LOG << "[" << GetId() << "]" << " move left \n ";
    m_pcWheels->SetLinearVelocity(m_fWheelVelocity, -m_fWheelVelocity);
 }
 
@@ -187,7 +187,7 @@ void CFootBotDiffusion::ControlStep() {
    /* If the closest obstacle is far enough, continue going straight */
    if(!IsObstacleDetected()) {
       GoStraight();
-      LOG << "[" << GetId() << "]" << " go straight no obstacle \n ";
+      //LOG << "[" << GetId() << "]" << " go straight no obstacle \n ";
       return;
    }
    /* Else, go to the section with the least obstacles */
@@ -213,7 +213,7 @@ void CFootBotDiffusion::ControlStep() {
       }
       else{
          GoStraight();
-         LOG << "[" << GetId() << "]" <<" go straight finished \n ";
+         //LOG << "[" << GetId() << "]" <<" go straight finished \n ";
          // We reached the emptiest section, so we are not turning to it anymore
          m_bTurning = false;
       }
