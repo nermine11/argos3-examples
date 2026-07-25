@@ -21,7 +21,7 @@ CFootBotDiffusion::CFootBotDiffusion() :
    m_bTurning(false){
    std::vector<int> sensors(24); // Original 24 sensors 
    std::iota(sensors.begin(), sensors.end(), 0);
-   // Assign the sensors for each section
+   // Assign the sensors for each section, for now the angle and readings are 0
    sections.push_back({"frontLeft", CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin(),      sensors.begin() + 6)});
    sections.push_back({"backLeft", CRadians::ZERO,
@@ -77,6 +77,9 @@ void CFootBotDiffusion::Init(TConfigurationNode& t_node) {
    }
 }
 
+/****************************************/
+/****************************************/
+
 Real CFootBotDiffusion::SumReadings(const std::vector<int>& section){
    const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
    /* Sum them together */
@@ -87,8 +90,11 @@ Real CFootBotDiffusion::SumReadings(const std::vector<int>& section){
    }
    cAccumulator /= section.size();
    return cAccumulator.Length();
-
 }
+
+/****************************************/
+/****************************************/
+
 CRadians CFootBotDiffusion::SectionAngle(const std::vector<int>& section) {
    const CCI_FootBotProximitySensor::TReadings& tReads = m_pcProximity->GetReadings();
    CVector2 cDir;
@@ -98,6 +104,9 @@ CRadians CFootBotDiffusion::SectionAngle(const std::vector<int>& section) {
    }
    return cDir.Angle();
 }
+
+/****************************************/
+/****************************************/
 
 CRadians CFootBotDiffusion::LowDensitySection() {
    /* Get readings from each section */
@@ -120,10 +129,11 @@ CRadians CFootBotDiffusion::LowDensitySection() {
 
 /****************************************/
 /****************************************/
-void CFootBotDiffusion::ControlStep() {
-   /* Get readings from proximity sensor */
+
+bool CFootBotDiffusion::IsObstacleDetected(){
+   /* Get readings from proximity sensors */
    const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
-   /* FIind the closest obstacle (max reading) */
+   /* Find the closest obstacle (max reading) */
    Real fMaxProxRead = 0.0f;
    for(size_t i = 0; i < tProxReads.size(); ++i){
       if(tProxReads[i].Value > fMaxProxRead){
@@ -131,15 +141,28 @@ void CFootBotDiffusion::ControlStep() {
       }
    }
    LOG << "[" << GetId() << "] maxProx = " << fMaxProxRead << '\n';
-   if(fMaxProxRead < m_fDelta ) {
+   return fMaxProxRead > m_fDelta;
+}
+
+/****************************************/
+/****************************************/
+
+void CFootBotDiffusion::ControlStep() {
+   /* Check if we detect an obstacle*/
+   bool bObstacleDetected = IsObstacleDetected();
+   /* If the closest obstacle is far enough, continue going straight */
+   if(!bObstacleDetected) {
       /* Go straight */
       m_pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
       LOG << "[" << GetId() << "]" << " go straight no obstacle\n ";
    }
+   /* Else, go to the section with the least obstacles */
    else {
+      // If I am not on the way to the section, find the section
       if(!m_bTurning) {
-         newDirection = LowDensitySection();       // decide ONCE
-         m_bTurning = true;                        // lock in
+         // Decide the section once
+         newDirection = LowDensitySection();       
+         m_bTurning = true;                        
       }
       Real front = SumReadings(sections[0].sensors) + SumReadings(sections[3].sensors);
       Real back  = SumReadings(sections[1].sensors) + SumReadings(sections[2].sensors);
@@ -167,6 +190,7 @@ void CFootBotDiffusion::ControlStep() {
       }
    }
 }
+
 /****************************************/
 /****************************************/
 

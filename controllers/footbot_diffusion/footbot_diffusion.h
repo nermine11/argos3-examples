@@ -57,6 +57,14 @@ public:
    virtual void Init(TConfigurationNode& t_node);
 
    /*
+    * This function checks if an obstacle has been detected.
+    * It finds the closest obstacle: the maximum reading across all sensors
+    * and returns true if that reading reaches the maximum proximity tolerance
+    * m_fDelta (obstacle detected) and false otherwise (path clear).
+    */
+   virtual bool IsObstacleDetected(); 
+
+   /*
     * This function is called once every time step.
     * The length of the time step is set in the XML file.
     */
@@ -74,7 +82,7 @@ public:
    virtual CRadians LowDensitySection();
    virtual Real SumReadings(const std::vector<int>& section);
    virtual CRadians SectionAngle(const std::vector<int>& section);
-
+   
    /*
     * Called to cleanup what done by Init() when the experiment finishes.
     * In this example controller there is no need for clean anything up,
