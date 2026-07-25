@@ -15,10 +15,11 @@
  *    experiments/diffusion_1.argos
  *    experiments/diffusion_10.argos
  */
-
 #ifndef FOOTBOT_DIFFUSION_H
 #define FOOTBOT_DIFFUSION_H
-
+#include <argos3/core/utility/math/vector2.h>
+#include<numeric>
+#include <algorithm>
 /*
  * Include some necessary headers.
  */
@@ -70,6 +71,8 @@ public:
     * completeness.
     */
    virtual void Reset() {}
+   virtual CRadians LowDensitySection();
+   virtual CVector2 SumReadings(const std::vector<int>& section);
 
    /*
     * Called to cleanup what done by Init() when the experiment finishes.
@@ -109,7 +112,15 @@ private:
    /* Angle tolerance range to go straight.
     * It is set to [-alpha,alpha]. */
    CRange<CRadians> m_cGoStraightAngleRange;
-
+   /* See the sensors positions here: https://github.com/ilpincy/argos3/blob/master/src/plugins/robots/foot-bot/control_interface/ci_footbot_proximity_sensor.h*/
+   // Front sensors 0,23
+   std::vector<int> frontRight;
+   // Back sensors 11,12
+   std::vector<int> frontLeft;
+   // Right sensors 13 -> 22
+   std::vector<int> backRight;
+   // Left sensors 1 -> 10
+   std::vector<int> backLeft;
 };
 
 #endif
