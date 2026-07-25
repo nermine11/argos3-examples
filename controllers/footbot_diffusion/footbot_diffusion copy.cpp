@@ -22,11 +22,11 @@ CFootBotDiffusion::CFootBotDiffusion() :
    std::vector<int> sensors(24); // Original 24 sensors 
    std::iota(sensors.begin(), sensors.end(), 0);
    // Assign the sensors for each section
-   sections.push_back({"frontLeft", CRadians::ZERO,
+   sections.push_back({"frontLeft",   CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin(),      sensors.begin() + 6)});
-   sections.push_back({"backLeft", CRadians::ZERO,
+   sections.push_back({"backLeft",    CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin() + 6,  sensors.begin() + 12)});
-   sections.push_back({"backRight", CRadians::ZERO,
+   sections.push_back({"backRight",  CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin() + 12, sensors.begin() + 18)});
    sections.push_back({"frontRight", CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin() + 18, sensors.end())});
@@ -123,15 +123,19 @@ CRadians CFootBotDiffusion::LowDensitySection() {
 void CFootBotDiffusion::ControlStep() {
    /* Get readings from proximity sensor */
    const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
-   /* FIind the closest obstacle (max reading) */
-   Real fMaxProxRead = 0.0f;
-   for(size_t i = 0; i < tProxReads.size(); ++i){
-      if(tProxReads[i].Value > fMaxProxRead){
-         fMaxProxRead = tProxReads[i].Value;
-      }
+   /* Sum them together */
+   CVector2 cAccumulator;
+   for(size_t i = 0; i < tProxReads.size(); ++i) {
+      cAccumulator += CVector2(tProxReads[i].Value, tProxReads[i].Angle);
    }
-   LOG << "[" << GetId() << "] maxProx = " << fMaxProxRead << '\n';
-   if(fMaxProxRead < m_fDelta ) {
+   cAccumulator /= tProxReads.size();
+   /* If the angle of the vector is small enough and the closest obstacle
+    * is far enough, continue going straight
+    */
+   // Direction of the obstacle field
+   CRadians cAngle = cAccumulator.Angle(); 
+   if(m_cGoStraightAngleRange.WithinMinBoundIncludedMaxBoundIncluded(cAngle) &&
+      cAccumulator.Length() < m_fDelta ) {
       /* Go straight */
       m_pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
       LOG << "[" << GetId() << "]" << " go straight no obstacle\n ";
@@ -146,6 +150,7 @@ void CFootBotDiffusion::ControlStep() {
       Real left  = SumReadings(sections[0].sensors) + SumReadings(sections[1].sensors);
       Real right = SumReadings(sections[2].sensors) + SumReadings(sections[3].sensors);
       bool frontIsBest = (front <= left && front <= right && front <= back);
+
        if(!frontIsBest) {
          /* Turn, depending on the sign of the angle */
          // Section on the right -> Turn to the right

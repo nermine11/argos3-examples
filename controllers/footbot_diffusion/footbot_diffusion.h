@@ -125,7 +125,8 @@ private:
       std::vector<int> sensors;
    };
    std::vector<section> sections;
-
+   bool     m_bTurning;      // are we currently executing a turn?
+   CRadians newDirection;  // the direction we committed to
 };
 
 #endif
