@@ -22,13 +22,13 @@ CFootBotDiffusion::CFootBotDiffusion() :
    std::vector<int> sensors(24); // Original 24 sensors 
    std::iota(sensors.begin(), sensors.end(), 0);
    // Assign the sensors for each section, for now the angle and readings are 0
-   sections.push_back({"frontLeft", CRadians::ZERO,
-                       0.0, std::vector<int>(sensors.begin(),      sensors.begin() + 6)});
-   sections.push_back({"backLeft", CRadians::ZERO,
-                       0.0, std::vector<int>(sensors.begin() + 6,  sensors.begin() + 12)});
-   sections.push_back({"backRight", CRadians::ZERO,
+   m_sections.push_back({"frontLeft", CRadians::ZERO,
+                       0.0, std::vector<int>(sensors.begin(), sensors.begin() + 6)});
+   m_sections.push_back({"backLeft", CRadians::ZERO,
+                       0.0, std::vector<int>(sensors.begin() + 6, sensors.begin() + 12)});
+   m_sections.push_back({"backRight", CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin() + 12, sensors.begin() + 18)});
-   sections.push_back({"frontRight", CRadians::ZERO,
+   m_sections.push_back({"frontRight", CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin() + 18, sensors.end())});
 }
 
@@ -72,7 +72,7 @@ void CFootBotDiffusion::Init(TConfigurationNode& t_node) {
    GetNodeAttributeOrDefault(t_node, "delta", m_fDelta, m_fDelta);
    GetNodeAttributeOrDefault(t_node, "velocity", m_fWheelVelocity, m_fWheelVelocity);
    /* Add the fixed angle of each section */
-   for(section&s : sections){
+   for(section&s : m_sections){
       s.angle = SectionAngle(s.sensors);
    }
 }
@@ -80,27 +80,13 @@ void CFootBotDiffusion::Init(TConfigurationNode& t_node) {
 /****************************************/
 /****************************************/
 
-Real CFootBotDiffusion::SumReadings(const std::vector<int>& section){
-   const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
-   /* Sum them together */
-   CVector2 cAccumulator;
-   for(size_t i = 0; i < section.size(); ++i) {
-      int index = section[i];
-      cAccumulator += CVector2(tProxReads[index].Value, tProxReads[index].Angle);
-   }
-   cAccumulator /= section.size();
-   return cAccumulator.Length();
-}
-
-/****************************************/
-/****************************************/
-
 CRadians CFootBotDiffusion::SectionAngle(const std::vector<int>& section) {
+   /* Get readings from proximity sensors of this section */
    const CCI_FootBotProximitySensor::TReadings& tReads = m_pcProximity->GetReadings();
    CVector2 cDir;
    for(size_t i = 0; i < section.size(); ++i)  {
       int index = section[i];
-      cDir += CVector2(1.0, tReads[index].Angle);   // length 1
+      cDir += CVector2(1.0, tReads[index].Angle);   // length is 1 to not have null vectors
    }
    return cDir.Angle();
 }
@@ -108,17 +94,31 @@ CRadians CFootBotDiffusion::SectionAngle(const std::vector<int>& section) {
 /****************************************/
 /****************************************/
 
-CRadians CFootBotDiffusion::LowDensitySection() {
+Real CFootBotDiffusion::AverageReadings(const std::vector<int>& section){
+   /* Get readings from proximity sensors of this section */
+   const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
+   /* Sum them together */
+   CVector2 cAccumulator;
+   for(size_t i = 0; i < section.size(); ++i) {
+      int index = section[i];
+      cAccumulator += CVector2(tProxReads[index].Value, tProxReads[index].Angle);
+   }
+   // Average them
+   cAccumulator /= section.size();
+   return cAccumulator.Length();
+}
+
+/****************************************/
+/****************************************/
+
+CRadians CFootBotDiffusion::LowestDensitySection() {
    /* Get readings from each section */
-   for(section&s : sections){
-      s.reading = SumReadings(s.sensors);
-      LOG << "section name = " << s.name << '\n';   
-      LOG << "section angle = " << s.angle << '\n';
-      LOG << "section reading = " << s.reading << '\n';
+   for(section& s : m_sections){
+      s.reading = AverageReadings(s.sensors);
    }
    /* Find the section with the most space (less dense with obstacles)*/
-   const section* best = &sections[0];
-   for(section&s : sections){
+   const section* best = &m_sections[0];
+   for(section& s : m_sections){
       if(s.reading < best->reading){
          best = &s;
       }
@@ -147,45 +147,74 @@ bool CFootBotDiffusion::IsObstacleDetected(){
 /****************************************/
 /****************************************/
 
+bool CFootBotDiffusion::IsFrontEmpty(){
+   /* Check if the current front is empty, so the robot can continue in a straight line */
+   Real fFrontLeft  = AverageReadings(m_sections[0].sensors);
+   Real fBackLeft   = AverageReadings(m_sections[1].sensors);
+   Real fBackRight  = AverageReadings(m_sections[2].sensors);
+   Real fFrontRight = AverageReadings(m_sections[3].sensors);
+   Real front = fFrontLeft + fFrontRight;
+   Real back  = fBackLeft  + fBackRight;
+   Real left  = fFrontLeft + fBackLeft;
+   Real right = fBackRight + fFrontRight;
+   return (front <= left && front <= right && front <= back);
+}
+
+/****************************************/
+/****************************************/
+
+void CFootBotDiffusion::GoStraight(){
+   m_pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
+}
+
+/****************************************/
+/****************************************/
+
+void CFootBotDiffusion::GoRight(){
+   LOG << "[" << GetId() << "]" << " move right \n ";
+   m_pcWheels->SetLinearVelocity(-m_fWheelVelocity, m_fWheelVelocity);
+}
+
+/****************************************/
+/****************************************/
+
+void CFootBotDiffusion::GoLeft(){
+   LOG << "[" << GetId() << "]" << " move left \n ";
+   m_pcWheels->SetLinearVelocity(m_fWheelVelocity, -m_fWheelVelocity);
+}
+
 void CFootBotDiffusion::ControlStep() {
-   /* Check if we detect an obstacle*/
-   bool bObstacleDetected = IsObstacleDetected();
    /* If the closest obstacle is far enough, continue going straight */
-   if(!bObstacleDetected) {
-      /* Go straight */
-      m_pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
-      LOG << "[" << GetId() << "]" << " go straight no obstacle\n ";
+   if(!IsObstacleDetected()) {
+      GoStraight();
+      LOG << "[" << GetId() << "]" << " go straight no obstacle \n ";
+      return;
    }
    /* Else, go to the section with the least obstacles */
    else {
       // If I am not on the way to the section, find the section
       if(!m_bTurning) {
-         // Decide the section once
-         newDirection = LowDensitySection();       
+         m_newDirection = LowestDensitySection();   
+         // Set to true so we do not change a section before fully reaching it    
          m_bTurning = true;                        
       }
-      Real front = SumReadings(sections[0].sensors) + SumReadings(sections[3].sensors);
-      Real back  = SumReadings(sections[1].sensors) + SumReadings(sections[2].sensors);
-      Real left  = SumReadings(sections[0].sensors) + SumReadings(sections[1].sensors);
-      Real right = SumReadings(sections[2].sensors) + SumReadings(sections[3].sensors);
-      bool frontIsBest = (front <= left && front <= right && front <= back);
-       if(!frontIsBest) {
-         /* Turn, depending on the sign of the angle */
+      /* If the front is empty, we conclude that we reached the emptiest section and stop turning */
+      bool b_frontEmpty = IsFrontEmpty();
+      /* Turn, depending on the sign of the angle, else go straight */
+      if(!b_frontEmpty) {
          // Section on the right -> Turn to the right
-         if(newDirection.GetValue() > 0.0f) { 
-            LOG << "[" << GetId() << "]" << " move right \n ";
-            m_pcWheels->SetLinearVelocity(-m_fWheelVelocity, m_fWheelVelocity);
+         if(m_newDirection.GetValue() > 0.0f) { 
+            GoRight();
          }
+         // Section on the left -> Turn to the left
          else {
-            // Section on the left -> Turn to the left
-            LOG << "[" << GetId() << "]" << " move left \n ";
-            m_pcWheels->SetLinearVelocity(m_fWheelVelocity, -m_fWheelVelocity);
+            GoLeft();   
          }
       }
       else{
-         /* Go straight */
-         m_pcWheels->SetLinearVelocity(m_fWheelVelocity, m_fWheelVelocity);
+         GoStraight();
          LOG << "[" << GetId() << "]" <<" go straight finished \n ";
+         // We reached the emptiest section, so we are not turning to it anymore
          m_bTurning = false;
       }
    }
