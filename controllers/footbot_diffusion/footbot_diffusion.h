@@ -157,9 +157,6 @@ private:
    Real m_fDelta;
    /* Wheel speed. */
    Real m_fWheelVelocity;
-   /* Angle tolerance range to go straight.
-    * It is set to [-alpha,alpha]. */
-   CRange<CRadians> m_cGoStraightAngleRange;
    /* See the sensors positions here: https://github.com/ilpincy/argos3/blob/master/src/plugins/robots/foot-bot/control_interface/ci_footbot_proximity_sensor.h
    * frontLeft sensors: 0,1,2,3,4,5
    * backLeft sensors 6,7,8,9,10,1
