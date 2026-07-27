@@ -13,11 +13,8 @@
 CFootBotDiffusion::CFootBotDiffusion() :
    m_pcWheels(NULL),
    m_pcProximity(NULL),
-   m_cAlpha(10.0f),
    m_fDelta(0.5f),
    m_fWheelVelocity(2.5f),
-   m_cGoStraightAngleRange(-ToRadians(m_cAlpha),
-                           ToRadians(m_cAlpha)),
    m_bTurning(false){
    /* Original 24 sensors */
    std::vector<int> sensors(24); 
@@ -68,8 +65,6 @@ void CFootBotDiffusion::Init(TConfigurationNode& t_node) {
     * parameters and it's nice to put them in the config file so we don't
     * have to recompile if we want to try other settings.
     */
-   GetNodeAttributeOrDefault(t_node, "alpha", m_cAlpha, m_cAlpha);
-   m_cGoStraightAngleRange.Set(-ToRadians(m_cAlpha), ToRadians(m_cAlpha));
    GetNodeAttributeOrDefault(t_node, "delta", m_fDelta, m_fDelta);
    GetNodeAttributeOrDefault(t_node, "velocity", m_fWheelVelocity, m_fWheelVelocity);
    /* Add the fixed angle of each section */

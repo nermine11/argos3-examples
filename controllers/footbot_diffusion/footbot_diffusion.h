@@ -143,11 +143,6 @@ private:
     * of the XML configuration file, under the
     * <controllers><footbot_diffusion_controller> section.
     */
-
-   /* Maximum tolerance for the angle between
-    * the robot heading direction and
-    * the closest obstacle detected. */
-   CDegrees m_cAlpha;
    /* Maximum tolerance for the proximity reading between
     * the robot and the closest obstacle.
     * The proximity reading is 0 when nothing is detected
