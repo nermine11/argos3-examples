@@ -19,9 +19,10 @@ CFootBotDiffusion::CFootBotDiffusion() :
    m_cGoStraightAngleRange(-ToRadians(m_cAlpha),
                            ToRadians(m_cAlpha)),
    m_bTurning(false){
-   std::vector<int> sensors(24); // Original 24 sensors 
+   /* Original 24 sensors */
+   std::vector<int> sensors(24); 
    std::iota(sensors.begin(), sensors.end(), 0);
-   // Assign the sensors for each section, for now the angle and readings are 0
+   /* Assign the sensors for each section, for now the angle and readings are 0 */
    m_sections.push_back({"frontLeft", CRadians::ZERO,
                        0.0, std::vector<int>(sensors.begin(), sensors.begin() + 6)});
    m_sections.push_back({"backLeft", CRadians::ZERO,
@@ -86,7 +87,12 @@ CRadians CFootBotDiffusion::SectionAngle(const std::vector<int>& section) {
    CVector2 cDir;
    for(size_t i = 0; i < section.size(); ++i)  {
       int index = section[i];
-      cDir += CVector2(1.0, tReads[index].Angle);   // length is 1 to not have null vectors
+     /* 
+      * Use fixed length 1 because a section without obstacles has length 0 so 
+      * the vector would sum to (0,0), whose angle is undefined. 
+      * Length 1 ensures the vector is not null, so we can get a valid angle.
+      */
+      cDir += CVector2(1.0, tReads[index].Angle);   
    }
    return cDir.Angle();
 }
@@ -94,7 +100,7 @@ CRadians CFootBotDiffusion::SectionAngle(const std::vector<int>& section) {
 /****************************************/
 /****************************************/
 
-Real CFootBotDiffusion::AverageReadings(const std::vector<int>& section){
+Real CFootBotDiffusion::AverageReading(const std::vector<int>& section){
    /* Get readings from proximity sensors of this section */
    const CCI_FootBotProximitySensor::TReadings& tProxReads = m_pcProximity->GetReadings();
    /* Sum them together */
@@ -103,7 +109,7 @@ Real CFootBotDiffusion::AverageReadings(const std::vector<int>& section){
       int index = section[i];
       cAccumulator += CVector2(tProxReads[index].Value, tProxReads[index].Angle);
    }
-   // Average them
+   /* Average them */
    cAccumulator /= section.size();
    return cAccumulator.Length();
 }
@@ -112,18 +118,17 @@ Real CFootBotDiffusion::AverageReadings(const std::vector<int>& section){
 /****************************************/
 
 CRadians CFootBotDiffusion::LowestDensitySection() {
-   /* Get readings from each section */
+   /* Get the average reading from each section */
    for(section& s : m_sections){
-      s.reading = AverageReadings(s.sensors);
+      s.reading = AverageReading(s.sensors);
    }
-   /* Find the section with the most space (less dense with obstacles)*/
+   /* Find the section with the most space (least dense with obstacles)*/
    const section* best = &m_sections[0];
    for(section& s : m_sections){
       if(s.reading < best->reading){
          best = &s;
       }
    }
-   //LOG << "best = " << best->name << '\n';
    return best->angle;
 }
 
@@ -140,7 +145,6 @@ bool CFootBotDiffusion::IsObstacleDetected(){
          fMaxProxRead = tProxReads[i].Value;
       }
    }
-   //LOG << "[" << GetId() << "] maxProx = " << fMaxProxRead << '\n';
    return fMaxProxRead > m_fDelta;
 }
 
@@ -148,16 +152,16 @@ bool CFootBotDiffusion::IsObstacleDetected(){
 /****************************************/
 
 bool CFootBotDiffusion::IsFrontEmpty(){
-   /* Check if the current front is empty, so the robot can continue in a straight line */
-   Real fFrontLeft  = AverageReadings(m_sections[0].sensors);
-   Real fBackLeft   = AverageReadings(m_sections[1].sensors);
-   Real fBackRight  = AverageReadings(m_sections[2].sensors);
-   Real fFrontRight = AverageReadings(m_sections[3].sensors);
-   Real front = fFrontLeft + fFrontRight;
-   Real back  = fBackLeft  + fBackRight;
-   Real left  = fFrontLeft + fBackLeft;
-   Real right = fBackRight + fFrontRight;
-   return (front <= left && front <= right && front <= back);
+   /* Get the average reading of each section */
+   /* It would be better to not use hardcoded indexes and use a map or a name lookup, but to keep it simple we used indexing */
+   Real fFrontLeft  = AverageReading(m_sections[0].sensors); 
+   Real fBackLeft   = AverageReading(m_sections[1].sensors);
+   Real fBackRight  = AverageReading(m_sections[2].sensors);
+   Real fFrontRight = AverageReading(m_sections[3].sensors);
+   /* Front is composed of our two sections: front-right and front-left */
+   Real front =(fFrontLeft + fFrontRight) / 2.0; 
+   /* front is empty if it's the least obstructed direction */
+   return (front <= fBackRight && front <= fBackLeft);
 }
 
 /****************************************/
@@ -171,7 +175,6 @@ void CFootBotDiffusion::GoStraight(){
 /****************************************/
 
 void CFootBotDiffusion::GoRight(){
-   //LOG << "[" << GetId() << "]" << " move right \n ";
    m_pcWheels->SetLinearVelocity(-m_fWheelVelocity, m_fWheelVelocity);
 }
 
@@ -179,42 +182,45 @@ void CFootBotDiffusion::GoRight(){
 /****************************************/
 
 void CFootBotDiffusion::GoLeft(){
-   //LOG << "[" << GetId() << "]" << " move left \n ";
    m_pcWheels->SetLinearVelocity(m_fWheelVelocity, -m_fWheelVelocity);
 }
 
+/****************************************/
+/****************************************/
+
 void CFootBotDiffusion::ControlStep() {
-   /* If the closest obstacle is far enough, continue going straight */
-   if(!IsObstacleDetected()) {
+   /* If the closest obstacle is far enough and we are not currently turning towards 
+    * the emptiest section after sensing an obstacle, continue going straight forward */
+   if(!IsObstacleDetected() && !m_bTurning) {
       GoStraight();
-      //LOG << "[" << GetId() << "]" << " go straight no obstacle \n ";
       return;
    }
-   /* Else, go to the section with the least obstacles */
+   /* Else, go to the emptiest section with the least obstacles */
    else {
-      // If I am not on the way to the section, find the section
+      /* If I am not on the way to the section, find the section */
       if(!m_bTurning) {
          m_newDirection = LowestDensitySection();   
-         // Set to true so we do not change a section before fully reaching it    
+         /* Set to true so we keep turning toward this direction and 
+         do not reclculate m_newDirection until we have fully reached it */
          m_bTurning = true;                        
       }
-      /* If the front is empty, we conclude that we reached the emptiest section and stop turning */
+      /* If the front is empty, we conclude that we reached the emptiest
+       section and stop turning */
       bool b_frontEmpty = IsFrontEmpty();
       /* Turn, depending on the sign of the angle, else go straight */
       if(!b_frontEmpty) {
-         // Section on the right -> Turn to the right
+         /* Section on the right -> Turn in place to the right */
          if(m_newDirection.GetValue() > 0.0f) { 
             GoRight();
          }
-         // Section on the left -> Turn to the left
+         /* Section on the left -> Turn in place to the left */
          else {
             GoLeft();   
          }
       }
       else{
          GoStraight();
-         //LOG << "[" << GetId() << "]" <<" go straight finished \n ";
-         // We reached the emptiest section, so we are not turning to it anymore
+         /* We reached the emptiest section, so we are not turning to it anymore */
          m_bTurning = false;
       }
    }

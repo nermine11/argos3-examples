@@ -59,28 +59,28 @@ public:
    /*
     * This function calculates the angle of each section
     * the 'section' variable points to one of the 4 sections : 
-    * FrontLeft, BackLeft, BackRight, FrontRight
-    * The reading(vector length) of each sensor is set to '1' since if there are no obstacles, 
-    * the reading is 0 which causes the vector to be zero and thus for angle to be undefined(defaults to 0)
+    * frontLeft, backLeft, backRight, frontRight
+    * The reading (vector length) of each sensor is set to '1' since if there are no obstacles, 
+    * the reading is 0 which causes the vector to be zero and thus for angle to be undefined (defaults to 0)
     */
-   virtual CRadians SectionAngle(const std::vector<int>& section);
+   CRadians SectionAngle(const std::vector<int>& section);
 
    /*
-    * This function averages the reading of the six sensors of a section.
+    * This function return the average of the readings of the six sensors of a section.
     * the 'section' variable points to one of the 4 sections : 
-    * FrontLeft, BackLeft, BackRight, FrontRight
+    * frontLeft, backLeft, backRight, frontRight
     */
-   virtual Real AverageReadings(const std::vector<int>& section);
+   Real AverageReading(const std::vector<int>& section);
 
    /*
     * This function returns the angle of the sections with the lowest
     * density of obstacles, which means the section with the lowest reading
     */
-   virtual CRadians LowestDensitySection();
+   CRadians LowestDensitySection();
 
    /*
-    * This function returns the angle of the sections with the lowest
-    * density of obstacles, which means the section with the lowest reading
+    * This function returns true if the front of the robot is the current least
+    * obstructed section, i.e has the lowest average reading
     */
    bool IsFrontEmpty();
 
@@ -90,7 +90,22 @@ public:
     * and returns true if that reading reaches the maximum proximity tolerance
     * m_fDelta (obstacle detected) and false otherwise (path clear).
     */
-   virtual bool IsObstacleDetected(); 
+   bool IsObstacleDetected(); 
+
+   /*
+    * This function moves the robot forward in a straight line
+    */
+   void GoStraight();
+
+   /*
+    * This function turns the robot to the right in place without moving 
+    */
+   void GoRight();
+
+   /*
+    * This function turns the robot to the left in place without moving 
+    */
+   void GoLeft();
 
    /*
     * This function is called once every time step.
@@ -115,9 +130,6 @@ public:
     * completeness.
     */
    virtual void Destroy() {}
-   virtual void GoStraight();
-   virtual void GoRight();
-   virtual void GoLeft();
 private:
 
    /* Pointer to the differential steering actuator */
@@ -149,10 +161,10 @@ private:
     * It is set to [-alpha,alpha]. */
    CRange<CRadians> m_cGoStraightAngleRange;
    /* See the sensors positions here: https://github.com/ilpincy/argos3/blob/master/src/plugins/robots/foot-bot/control_interface/ci_footbot_proximity_sensor.h
-   * FrontLeft sensors: 0,1,2,3,4,5
-   * BackLeft sensors 6,7,8,9,10,1
-   * BackRight sensors 12,13,14,15,16,17
-   * FrontRight sensors 18,19,20,21,22,23
+   * frontLeft sensors: 0,1,2,3,4,5
+   * backLeft sensors 6,7,8,9,10,1
+   * backRight sensors 12,13,14,15,16,17
+   * frontRight sensors 18,19,20,21,22,23
    */
    struct section{
       std::string name;
@@ -160,10 +172,11 @@ private:
       Real reading;
       std::vector<int> sensors;
    };
+   /* [frontLeft, backLeft, backRight, frontRight]*/
    std::vector<section> m_sections;
-   /* Check if we currently executing a turn to reach a less dense section? */
+   /* Check if we are currently executing a turn in the direction least dense section */
    bool m_bTurning;   
-   /* The direction of the less dense section we are turning to */
+   /* The direction of the least dense section we are turning to */
    CRadians m_newDirection; 
 };
 
