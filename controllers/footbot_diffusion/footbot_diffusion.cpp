@@ -148,7 +148,7 @@ bool CFootBotDiffusion::IsObstacleDetected(){
 
 bool CFootBotDiffusion::IsFrontEmpty(){
    /* Get the average reading of each section */
-   /* It would be better to not use hardcoded indexes and use a map or a name lookup, but to keep it simple we used indexing */
+   /* It would be better to not use hardcoded indexes and use a map or a name lookup, but to keep it simple we use indexing */
    Real fFrontLeft  = AverageReading(m_sections[0].sensors); 
    Real fBackLeft   = AverageReading(m_sections[1].sensors);
    Real fBackRight  = AverageReading(m_sections[2].sensors);

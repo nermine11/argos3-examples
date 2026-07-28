@@ -74,13 +74,13 @@ public:
 
    /*
     * This function returns the angle of the sections with the lowest
-    * density of obstacles, which means the section with the lowest reading
+    * density of obstacles, which means the section with the lowest reading.
     */
    CRadians LowestDensitySection();
 
    /*
     * This function returns true if the front of the robot is the current least
-    * obstructed section, i.e has the lowest average reading
+    * obstructed section, i.e has the lowest average reading.
     */
    bool IsFrontEmpty();
 
@@ -93,17 +93,17 @@ public:
    bool IsObstacleDetected(); 
 
    /*
-    * This function moves the robot forward in a straight line
+    * This function moves the robot forward in a straight line.
     */
    void GoStraight();
 
    /*
-    * This function turns the robot to the right in place without moving 
+    * This function turns the robot to the right in place without moving.
     */
    void GoRight();
 
    /*
-    * This function turns the robot to the left in place without moving 
+    * This function turns the robot to the left in place without moving.
     */
    void GoLeft();
 
@@ -143,6 +143,7 @@ private:
     * of the XML configuration file, under the
     * <controllers><footbot_diffusion_controller> section.
     */
+
    /* Maximum tolerance for the proximity reading between
     * the robot and the closest obstacle.
     * The proximity reading is 0 when nothing is detected
